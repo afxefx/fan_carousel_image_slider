@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:fan_carousel_image_slider/src/exts/string_extension.dart';
 import 'package:flutter/material.dart';
@@ -171,7 +172,7 @@ class _ImageSliderType1State extends State<ImageSliderType1Widget> {
                     image: (expandedImage != null)
                         ? DecorationImage(
                             image: (!widget.isAssets)
-                                ? NetworkImage(expandedImage!)
+                                ? CachedNetworkImageProvider(expandedImage!)
                                 : expandedImage!.isSvgImage
                                     ? Svg(expandedImage!)
                                     : AssetImage(expandedImage!) as ImageProvider,
@@ -242,16 +243,19 @@ class _ImageSliderType1State extends State<ImageSliderType1Widget> {
                         onSlideClick: () {
                           if (widget.isClickable && index == actualIndex) {
                             if (widget.expandFitAndZoomable) {
-                              showImageViewer(
-                                  context,
-                                  widget.isAssets
-                                      ? (widget.imagesLink[index].isSvgImage
-                                          ? Svg(widget.imagesLink[index])
-                                          : Image.asset(widget.imagesLink[index]).image)
-                                      : Image.network(widget.imagesLink[index]).image,
-                                  onViewerDismissed: () {
-                                _isExpandSlide.value = false;
-                              });
+                              final imageProviders = widget.imagesLink.map<ImageProvider>((link) {
+                                if (widget.isAssets) {
+                                  return link.isSvgImage
+                                      ? Svg(link)
+                                      : AssetImage(link) as ImageProvider;
+                                }
+                                return CachedNetworkImageProvider(link);
+                              }).toList();
+                              showImageViewerPager(
+                                context,
+                                MultiImageProvider(imageProviders, initialIndex: index),
+                                onViewerDismissed: (_) => _isExpandSlide.value = false,
+                              );
                             } else {
                               _isExpandSlide.value = true;
                             }
